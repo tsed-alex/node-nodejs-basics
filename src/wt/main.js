@@ -4,7 +4,7 @@ import { Worker } from 'node:worker_threads';
 const filePath = new URL('worker.js', import.meta.url);
 
 const performCalculations = async () => {
-    const result = [];
+    const promiseWorkerArray = [];
 
     console.log(os.cpus().length);
     for (let cpuIndex = 0;  cpuIndex < os.cpus().length; cpuIndex++) {
@@ -13,13 +13,18 @@ const performCalculations = async () => {
                 num: 10 + cpuIndex
             }
         });
-        worker.once('message', (msg) => {
-            result.push({ status: 'resolved', data: msg })
-            if(result.length === os.cpus().length) {
-                console.log(result);
-            }
+
+        const promise = new Promise((resolve, reject) => {
+            worker.once('message', (msg) => {
+                resolve({ status: 'resolved', data: msg })
+            });
         });
+        promiseWorkerArray.push(promise);
     }
+
+    Promise.all([...promiseWorkerArray]).then(value => {
+        console.log(value);
+    });
 };
 
 await performCalculations();
